@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS Semester 1 Final Flashcards - Offline Version</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .flip-card {
+            background-color: transparent;
+            perspective: 1000px;
+            height: 380px;
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1);
+        }
+        .flip-card-front {
+            background-color: #ffffff;
+            color: #1f2937;
+            border: 2px solid #e5e7eb;
+        }
+        .flip-card-back {
+            background-color: #2563eb;
+            color: white;
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center py-10 px-4">
+
+    <div class="max-w-2xl w-full text-center mb-8">
+        <h1 class="text-4xl font-extrabold text-slate-900 mb-2">CS Study Hub <span class="text-blue-600">Offline</span></h1>
+        <p class="text-slate-600 font-medium">Full Review: 50 Interactive Cards + AI Insights</p>
+        <div class="mt-4 flex justify-center gap-4 text-sm">
+            <span id="progress" class="bg-blue-100 text-blue-800 px-4 py-1.5 rounded-full font-bold shadow-sm">Card 1 of 50</span>
+        </div>
+    </div>
+
+    <!-- Main Flashcard Area -->
+    <div id="flashcard-view" class="max-w-lg w-full">
+        <div id="card-container" class="flip-card" onclick="toggleFlip()">
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <span class="text-xs font-black uppercase tracking-widest text-blue-500 mb-6">Question</span>
+                    <p id="question-text" class="text-2xl font-bold px-4 text-slate-800"></p>
+                </div>
+                <div class="flip-card-back">
+                    <span class="text-xs font-black uppercase tracking-widest text-blue-100 mb-6">Answer</span>
+                    <p id="answer-text" class="text-xl leading-relaxed px-4 font-medium"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tool Buttons (Now Offline) -->
+        <div class="grid grid-cols-2 gap-4 mt-8">
+            <button onclick="getExplanation(event)" class="flex items-center justify-center bg-white border-2 border-blue-100 hover:border-blue-300 hover:bg-blue-50 text-blue-700 py-4 px-4 rounded-2xl font-bold transition-all shadow-sm">
+                <span>📖 Explain Concept</span>
+            </button>
+            <button onclick="getMnemonic(event)" class="flex items-center justify-center bg-white border-2 border-purple-100 hover:border-purple-300 hover:bg-purple-50 text-purple-700 py-4 px-4 rounded-2xl font-bold transition-all shadow-sm">
+                <span>🧠 Memory Trick</span>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <div class="flex justify-between items-center mt-8">
+            <button onclick="prevCard()" class="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-100 transition shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <div class="text-slate-400 font-medium text-sm animate-pulse">Click card to flip</div>
+            <button onclick="nextCard()" class="p-4 rounded-2xl bg-white border border-slate-200 hover:bg-slate-100 transition shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- AI Info Modal -->
+    <div id="ai-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl transform transition-all scale-100">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 id="modal-title" class="text-2xl font-black text-slate-900">Study Insight</h3>
+                    <p class="text-sm text-blue-500 font-bold uppercase tracking-wider mt-1">Embedded Resource</p>
+                </div>
+                <button onclick="closeModal()" class="p-2 bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div id="modal-content" class="text-slate-700 leading-relaxed text-lg max-h-96 overflow-y-auto pr-4"></div>
+            <div class="mt-8">
+                <button onclick="closeModal()" class="w-full bg-slate-900 hover:bg-black text-white font-bold py-4 rounded-2xl shadow-lg transition">Got it, thanks!</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // All explanations and mnemonics pre-loaded for offline use
+        const flashcards = [
+            { 
+                q: "What is the function of the Capacitor in RAM?", 
+                a: "It holds the bits that represent data. Charged = 1; Discharged = 0.",
+                exp: "A capacitor acts like a tiny rechargeable battery. In RAM, the presence of a charge represents binary '1' and the absence represents '0'. Because capacitors naturally leak electricity, DRAM needs to be refreshed thousands of times per second.",
+                mne: "C for Capacitor, C for Charge. Charge is On (1), No charge is Off (0)."
+            },
+            { 
+                q: "How does SRAM differ from DRAM in terms of speed and use?", 
+                a: "SRAM is faster and used for Cache. DRAM is slower, cheaper, and used for main memory.",
+                exp: "SRAM (Static) uses flip-flops and doesn't need refreshing, making it lightning fast but expensive. DRAM (Dynamic) is what you buy in 8GB/16GB sticks; it's cheaper but needs constant power refreshes.",
+                mne: "S is for Speedy (Cache), D is for Dense (Big sticks of RAM)."
+            },
+            { 
+                q: "What is Virtual Memory?", 
+                a: "A part of secondary storage (hard disk) that works as RAM when the computer runs out of physical RAM space.",
+                exp: "When your RAM is full, the OS moves 'inactive' data to a hidden file on your SSD/HDD (called a page file). It allows you to run more programs than your RAM physically allows, but it slows the computer down.",
+                mne: "Virtual = Pretend. The Hard Drive is 'pretending' to be RAM."
+            },
+            { 
+                q: "What are the four levels of ROM types?", 
+                a: "MROM (Mask), PROM (Programmable), EPROM (Erasable), EEPROM (Electrically Erasable).",
+                exp: "ROM evolved from being permanent at the factory (MROM) to being erasable with UV light (EPROM) and finally erasable with electricity (EEPROM), which is what modern Flash memory uses.",
+                mne: "M-P-E-EE: 'Most People Eat Every...thing' (Mask, Programmable, Erasable, Electrically Erasable)."
+            },
+            { 
+                q: "What is the BIOS and where is it stored?", 
+                a: "Basic Input/Output System; it handles the booting process and is stored in ROM.",
+                exp: "The BIOS is the first software that runs when you hit the power button. It checks hardware (POST) and hands control to the Operating System. It must be in ROM so it isn't lost when power is cut.",
+                mne: "BIOS = Boss. It's the first one in the office and tells everyone what to do."
+            },
+            { 
+                q: "What is Parallel Processing?", 
+                a: "Using multiple processors or cores at the same time to execute tasks.",
+                exp: "Instead of one person doing a 100-page job, you give 25 pages to 4 people. In computing, this means multi-core CPUs handling different parts of a program simultaneously.",
+                mne: "Parallel = Parallel lines working side-by-side."
+            },
+            { 
+                q: "What does the FSB (Front Side Bus) speed determine?", 
+                a: "How fast data and addresses move between the CPU and RAM.",
+                exp: "Think of the FSB as the highway between the CPU and the Memory. Even if you have a fast CPU, a slow FSB will cause a bottleneck.",
+                mne: "FSB = Fast Street Bridge between CPU city and RAM town."
+            },
+            { 
+                q: "What is 'Word Size'?", 
+                a: "The number of bits that a microprocessor can manipulate at one time (e.g., 64-bit).",
+                exp: "Word size determines how much data the CPU can process in a single clock cycle and how much memory it can address. Most modern PCs are 64-bit.",
+                mne: "The bigger the 'Word', the more the CPU can 'say' at once."
+            },
+            { 
+                q: "Main difference between RISC and CISC?", 
+                a: "RISC uses small, simple instructions (one per cycle); CISC uses large, complex instructions.",
+                exp: "RISC (Reduced) is like a chef who only does one basic cut at a time. CISC (Complex) is like a chef who has a single button for 'Make a Sandwich'. RISC is common in phones (ARM), CISC in PCs (Intel).",
+                mne: "RISC = Rapid (simple), CISC = Complex (heavy)."
+            },
+            { 
+                q: "Contrast Primary vs Secondary Storage.", 
+                a: "Primary (RAM/ROM) is volatile/fast/close to CPU. Secondary (HDD/SSD) is non-volatile/slow/long-term.",
+                exp: "Primary is your 'active' workspace. Secondary is your 'filing cabinet'. You can't run a program directly from the HDD; it must be loaded into Primary storage first.",
+                mne: "Primary = Prompt (Fast), Secondary = Stable (Permanent)."
+            },
+            { 
+                q: "Three factors of Hard Disk Access Speed?", 
+                a: "1. Seek Time, 2. Head Switch, 3. Rotational Delay.",
+                exp: "Seek Time is moving the arm. Head Switch is selecting which side to read. Rotational Delay is waiting for the platter to spin to the right spot.",
+                mne: "S-H-R: Search, Hop, Rotate."
+            },
+            { 
+                q: "What is a 'Cluster' in disk organization?", 
+                a: "A combination of adjacent sectors (typically 2-8) used as the smallest unit of storage.",
+                exp: "Even if a file is only 1 byte, it will take up 1 whole cluster. This is why 'Size on Disk' is often larger than actual file size.",
+                mne: "Cluster = A bunch of sectors acting as one team."
+            },
+            { 
+                q: "How does Optical Storage represent 1s and 0s?", 
+                a: "As Pits and Lands. A change from pit to land (or vice versa) = 1; no change = 0.",
+                exp: "A laser shines on the disc. When it hits a change in depth (pit to land), the light scatters, which the sensor reads as a 1. Steady reflection is a 0.",
+                mne: "Pits are holes, Lands are flat. Changes create the signal."
+            },
+            { 
+                q: "SSD vs HDD on Temperature.", 
+                a: "SSDs tolerate higher temps; HDDs need cooling due to mechanical friction.",
+                exp: "Because HDDs have parts spinning at 7200 RPM, they generate significant heat and are prone to mechanical failure if they get too hot. SSDs are just chips.",
+                mne: "HDD = Hot Disk Drive (Mechanical friction)."
+            },
+            { 
+                q: "What is RAID Level 1?", 
+                a: "Data Mirroring: It duplicates data on separate disk drives.",
+                exp: "If you have two 1TB drives in RAID 1, you only have 1TB of space because the second drive is an exact copy. If one fails, you lose zero data.",
+                mne: "RAID 1 = 1 Twin copy."
+            },
+            { 
+                q: "What is 'Dot Pitch'?", 
+                a: "The amount of space between pixels. Lower = better quality.",
+                exp: "Think of it as the 'gap' between the lights on your screen. If the gap is small (low pitch), the image looks smooth. If it's big, it looks 'screen-door' style.",
+                mne: "Low Pitch = High Richness (Detail)."
+            },
+            { 
+                q: "Refresh Rate vs Response Rate?", 
+                a: "Refresh: Times per second image updates. Response: Time for a pixel to change color.",
+                exp: "Refresh rate is measured in Hz (e.g., 144Hz). Response rate is measured in ms (e.g., 1ms). Gamers want high Refresh and low Response.",
+                mne: "Refresh = Frequency. Response = Reaction time."
+            },
+            { 
+                q: "What is the role of a GPU?", 
+                a: "Specialized for simple, parallel calculations like graphics and AI.",
+                exp: "While a CPU is like a genius professor who can do anything, a GPU is like 3,000 students who can only do simple math, but they all do it at the same time.",
+                mne: "G for Graphics, P for Parallel power."
+            },
+            { 
+                q: "System Software vs Application Software?", 
+                a: "System (OS/Drivers) manages hardware; Application (Word/Games) performs user tasks.",
+                exp: "System software is the background infrastructure. Without an OS, you can't run a browser. Application software is what the user actually wants to use.",
+                mne: "System = Skeleton (Infrastructure), Application = Activity."
+            },
+            { 
+                q: "Define 'Shareware' licensing.", 
+                a: "'Try before you buy' with a trial period or limited features.",
+                exp: "Common in the 90s. You get the full game for 30 days, then it locks until you pay. Distinct from Freeware which is always free.",
+                mne: "Share-ware: They share it for a bit, then you pay your share."
+            },
+            { 
+                q: "Best Case for Insertion Sort?", 
+                a: "O(n). This happens when the list is already sorted.",
+                exp: "If the list is already sorted, Insertion Sort just looks at each element once, sees it is in the right place, and moves on.",
+                mne: "Insertion is 'Smart' if things are already in order."
+            },
+            { 
+                q: "Explain Selection Sort logic.", 
+                a: "Find the smallest item and swap it with the first. Repeat for the rest.",
+                exp: "It scans the whole unsorted list, finds the minimum, and moves it to the start. It never gets better than O(n^2) because it always scans the whole list.",
+                mne: "Select the smallest, swap to the front."
+            },
+            { 
+                q: "Space Complexity of basic sorts?", 
+                a: "O(1) - they are all 'in-place'.",
+                exp: "In-place means the algorithm doesn't need to create a whole new list/copy of the data to sort it. It just swaps items in the original list.",
+                mne: "Space O(1) = Only 1 list needed."
+            },
+            { 
+                q: "Key requirement for Binary Search?", 
+                a: "The input data must be sorted.",
+                exp: "Binary search works by guessing the middle. If the list isn't sorted, you can't know which half to discard after a guess.",
+                mne: "Binary = Better be sorted."
+            },
+            { 
+                q: "Time complexity of Linear Search?", 
+                a: "O(n).",
+                exp: "If you have 100 items, you might have to check all 100. If you have N items, you check N. This is a linear relationship.",
+                mne: "Linear = Long line (one by one)."
+            },
+            { 
+                q: "What is L1 Cache?", 
+                a: "Fastest cache level, built directly into the CPU core.",
+                exp: "L1 is the CPU's immediate 'short term memory'. It's tiny (kilobytes) but operates at the same speed as the CPU itself.",
+                mne: "L1 = Level 1 (Closest and Fastest)."
+            },
+            { 
+                q: "What is Overclocking?", 
+                a: "Running a processor at a higher speed than its official rating.",
+                exp: "You increase the clock frequency to get more performance. However, this increases power draw and heat, which can damage the chip if not cooled properly.",
+                mne: "Overclock = Over the limit."
+            },
+            { 
+                q: "Define 'Clock Speed'.", 
+                a: "The number of pulses the system clock sends per second (GHz).",
+                exp: "1 GHz means 1 billion pulses per second. Each pulse allows the CPU to perform a tiny piece of an instruction.",
+                mne: "Clock = The heartbeat of the computer."
+            },
+            { 
+                q: "What are 'Tracks' on a hard disk?", 
+                a: "Concentric circles on the platter, divided into sectors.",
+                exp: "Imagine a running track with lanes. The lanes are the 'tracks', and the segments of those lanes are the 'sectors'.",
+                mne: "Tracks = Circles, Sectors = Slices."
+            },
+            { 
+                q: "Disk capacity formula?", 
+                a: "Bytes/Sector * Sectors/Track * Tracks/Side * Sides.",
+                exp: "It's a volume calculation: how much is in one slice * how many slices in a circle * how many circles on a side * number of sides.",
+                mne: "B * S * T * S: 'Big Snakes Travel South'."
+            },
+            { 
+                q: "What is 'Formatting' a disk?", 
+                a: "Creating tracks and sectors so the OS can map storage locations.",
+                exp: "Low-level formatting creates the physical tracks. High-level formatting creates the file system (like NTFS or FAT32) so the OS can save files.",
+                mne: "Formatting = Drawing the map for the data."
+            },
+            { 
+                q: "What is RAID Level 0?", 
+                a: "Data Striping: Spreading data across disks for speed.",
+                exp: "RAID 0 splits a file in half and writes half to Disk A and half to Disk B at the same time. It's twice as fast, but if ONE disk fails, ALL data is lost.",
+                mne: "RAID 0 = 0 Security (Fast but risky)."
+            },
+            { 
+                q: "How does a Laser Mouse work?", 
+                a: "Uses a laser diode to track movement on almost any surface.",
+                exp: "Standard optical mice use LED light. Laser mice use a coherent beam that can detect much finer surface details, allowing them to work on glass.",
+                mne: "Laser = Light Amplified (High Precision)."
+            },
+            { 
+                q: "What is a 'VGA' port?", 
+                a: "Video Graphics Array: An old 15-pin analog video port.",
+                exp: "VGA carries analog signals, unlike HDMI or DisplayPort which are digital. It's usually blue and has three rows of 5 pins.",
+                mne: "VGA = Very Greatly Ancient (Analog)."
+            },
+            { 
+                q: "What is 'Firmware'?", 
+                a: "Software programmed into hardware's non-volatile memory.",
+                exp: "Firmware is more permanent than software. It's found in your microwave, your router, and your motherboard BIOS.",
+                mne: "Firm-ware: It's software that is 'firmly' attached to hardware."
+            },
+            { 
+                q: "Define 'Open Source'.", 
+                a: "Code that is public for anyone to study, edit, and share.",
+                exp: "Examples include Linux, Android, and Firefox. The community works together to improve it, and it's usually free.",
+                mne: "Open = Open to everyone's eyes."
+            },
+            { 
+                q: "What is an 'Interpreter'?", 
+                a: "Translates and executes code line-by-line.",
+                exp: "Python is an interpreted language. If there is an error on line 50, the program runs lines 1-49 perfectly before crashing. Compilers check the whole thing first.",
+                mne: "Interpreter = Live translator (Line by line)."
+            },
+            { 
+                q: "Best Case for Bubble Sort?", 
+                a: "O(n) - with a 'swapped' flag.",
+                exp: "If you walk through the list once and don't make any swaps, you know it's sorted and can stop immediately.",
+                mne: "Bubble is O(n) if nothing pops!"
+            },
+            { 
+                q: "Midpoint formula for Binary Search?", 
+                a: "(low + high) // 2.",
+                exp: "You take the start index (low) and end index (high), add them, and divide by 2 (flooring it) to find the middle index.",
+                mne: "Mid = Average of the ends."
+            },
+            { 
+                q: "What is 'Interpolation Search'?", 
+                a: "Optimized search that estimates position based on value.",
+                exp: "If you're looking for 'Z' in a dictionary, you don't start in the middle; you start at the end. Interpolation search does this with numbers.",
+                mne: "Interpolation = Intelligent guessing."
+            },
+            { 
+                q: "Worst Case for Linear Search?", 
+                a: "O(n) - item at end or not there.",
+                exp: "You have to check every single item before you can be sure the target isn't in the list.",
+                mne: "Linear Worst = Last one found."
+            },
+            { 
+                q: "What does the 'Control Unit' (CU) do?", 
+                a: "Directs the operation of the processor and data flow.",
+                exp: "The CU doesn't do the math (the ALU does). Instead, it's the 'Traffic Cop' that tells the ALU which numbers to add and where to send the result.",
+                mne: "Control Unit = Traffic Controller."
+            },
+            { 
+                q: "What is the 'ALU'?", 
+                a: "Arithmetic Logic Unit: Performs math and logic.",
+                exp: "The ALU handles all the adding, subtracting, and comparisons (AND/OR/NOT). It's the calculator inside the brain.",
+                mne: "ALU = Actual Logic Unit (The math guy)."
+            },
+            { 
+                q: "Define 'Latency' in disk access.", 
+                a: "Time for the sector to rotate under the read head.",
+                exp: "Even after the arm moves to the right track (Seek Time), we have to wait for the disk to spin until the specific data piece is under the head.",
+                mne: "Latency = Lag (Waiting for rotation)."
+            },
+            { 
+                q: "What is a 'Cold Boot'?", 
+                a: "Starting a computer from a completely 'off' state.",
+                exp: "A cold boot runs all hardware diagnostics (POST). A 'Warm Boot' (restart) skips some of these checks.",
+                mne: "Cold = Power was frozen (Off)."
+            },
+            { 
+                q: "What is 'Device Driver' software?", 
+                a: "Utility that lets the OS communicate with hardware.",
+                exp: "Your OS doesn't know how to speak 'Printer' or 'Webcam' by default. The driver acts as a translator for that specific device.",
+                mne: "Driver = Drives the hardware for the OS."
+            },
+            { 
+                q: "What is 'Multitasking'?", 
+                a: "The ability of an OS to run multiple apps at once.",
+                exp: "Most modern OSs use 'Time Slicing', where they give each app a few milliseconds of CPU time so fast that it looks like they are all running simultaneously.",
+                mne: "Multi-task = Many things at once."
+            },
+            { 
+                q: "Define 'Internal Bus'.", 
+                a: "Lines connecting components inside the CPU.",
+                exp: "Internal buses connect the CU, ALU, and internal registers. External buses connect the CPU to the rest of the motherboard.",
+                mne: "Internal = Inside the Chip."
+            },
+            { 
+                q: "How many bits in a Byte?", 
+                a: "8 bits.",
+                exp: "A bit is a 0 or 1. A byte is a group of 8. One byte can represent 256 different values (2^8).",
+                mne: "Byte = 8 Bites of data."
+            },
+            { 
+                q: "What is 'Volatile Memory'?", 
+                a: "Memory that loses data when power is lost.",
+                exp: "RAM is volatile. When you restart your computer, everything in RAM is wiped clean. ROM and HDDs are non-volatile.",
+                mne: "Volatile = Vanishes without power."
+            }
+        ];
+
+        let currentIndex = 0;
+
+        function updateCard() {
+            const card = document.getElementById('card-container');
+            card.classList.remove('flipped');
+            setTimeout(() => {
+                document.getElementById('question-text').innerText = flashcards[currentIndex].q;
+                document.getElementById('answer-text').innerText = flashcards[currentIndex].a;
+                document.getElementById('progress').innerText = `Card ${currentIndex + 1} of ${flashcards.length}`;
+            }, 150);
+        }
+
+        function toggleFlip() {
+            document.getElementById('card-container').classList.toggle('flipped');
+        }
+
+        function nextCard() {
+            currentIndex = (currentIndex + 1) % flashcards.length;
+            updateCard();
+        }
+
+        function prevCard() {
+            currentIndex = (currentIndex - 1 + flashcards.length) % flashcards.length;
+            updateCard();
+        }
+
+        // Offline Info Functions
+        function getExplanation(e) {
+            e.stopPropagation();
+            const card = flashcards[currentIndex];
+            showModal("📖 Detailed Explanation", card.exp);
+        }
+
+        function getMnemonic(e) {
+            e.stopPropagation();
+            const card = flashcards[currentIndex];
+            showModal("🧠 Memory Hack", card.mne);
+        }
+
+        function showModal(t, c) {
+            document.getElementById('modal-title').innerText = t;
+            document.getElementById('modal-content').innerText = c;
+            document.getElementById('ai-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('ai-modal').classList.add('hidden');
+        }
+
+        // Initialize
+        updateCard();
+    </script>
+</body>
+</html>
